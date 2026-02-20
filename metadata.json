@@ -1,0 +1,5 @@
+{
+  "name": "Site Data Cleaner Extension",
+  "description": "A Chrome extension to delete cookies and history for a specific site.",
+  "requestFramePermissions": []
+}
