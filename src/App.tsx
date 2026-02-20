@@ -47,7 +47,10 @@ export default function App() {
         let deletedCount = 0;
         cookies.forEach((cookie) => {
           const protocol = cookie.secure ? 'https:' : 'http:';
-          const cookieUrl = `${protocol}//${cookie.domain}${cookie.path}`;
+          // Remove leading dot from domain if present to ensure valid URL construction
+          const hostname = cookie.domain.startsWith('.') ? cookie.domain.slice(1) : cookie.domain;
+          const cookieUrl = `${protocol}//${hostname}${cookie.path}`;
+
           chrome.cookies.remove({ url: cookieUrl, name: cookie.name }, () => {
             deletedCount++;
             if (deletedCount === cookies.length) {
@@ -78,12 +81,30 @@ export default function App() {
           return;
         }
 
+        // Filter results to ensure hostname matches domain to prevent accidental deletion
+        const filteredResults = results.filter((item) => {
+          if (!item.url) return false;
+          try {
+            const url = new URL(item.url);
+            // Check if hostname is the domain or a subdomain
+            return url.hostname === domain || url.hostname.endsWith('.' + domain);
+          } catch (e) {
+            return false;
+          }
+        });
+
+        if (filteredResults.length === 0) {
+          showStatus('info', `No history found for ${domain} (after filtering)`);
+          setIsLoading(false);
+          return;
+        }
+
         let deletedCount = 0;
-        results.forEach((item) => {
+        filteredResults.forEach((item) => {
           if (item.url) {
             chrome.history.deleteUrl({ url: item.url }, () => {
               deletedCount++;
-              if (deletedCount === results.length) {
+              if (deletedCount === filteredResults.length) {
                 showStatus('success', `Deleted ${deletedCount} history items for ${domain}`);
                 setIsLoading(false);
               }
